@@ -1,6 +1,6 @@
 import argparse
 
-from publisher import CSVRecordPublisher
+from rabbitmq import CSVRecordPublisher
 
 def main():
     parser = argparse.ArgumentParser(prog="publish_sensor_failures")

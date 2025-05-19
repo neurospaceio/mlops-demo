@@ -11,15 +11,15 @@ class CSVRecordPublisher:
 
         self._connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         self._channel = self._connection.channel()
-        self._channel.queue_declare(self.queue_name)
+        self._channel.queue_declare(self._queue_name)
 
     def run(self, period):
 
-        for reading in self.df_readings.iter_rows(named=True):
+        for reading in self._df.iter_rows(named=True):
             body = json.dumps(reading)
             self._channel.basic_publish(
                 exchange="",
-                routing_key=self.queue_name,
+                routing_key=self._queue_name,
                 body=body
             )
             time.sleep(period)
