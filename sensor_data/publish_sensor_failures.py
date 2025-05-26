@@ -1,10 +1,10 @@
 import argparse
 
-from rabbitmq import CSVRecordPublisher
+from rabbitmq.publisher import CSVRecordPublisher
 
 def main():
     parser = argparse.ArgumentParser(prog="publish_sensor_failures")
-    parser.add_argument("-T", "--period", type=int)
+    parser.add_argument("-T", "--period", type=float)
     args = parser.parse_args()
 
     publisher = CSVRecordPublisher(
