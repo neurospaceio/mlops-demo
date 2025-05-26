@@ -9,7 +9,7 @@ def callback(ch, method, properties, body):
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 channel = connection.channel()
 
-channel.basic_consume(queue="readings", auto_ack=True, on_message_callback=callback)
+channel.basic_consume(queue="failures", auto_ack=True, on_message_callback=callback)
 
 channel.start_consuming()
 
