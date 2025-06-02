@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, recall_score, prec
 # Get data and select features and label 
 # ======================================================================
 
-df = pl.read_csv("../data/predictive_maintenance.csv")
+df = pl.read_csv("../sensor_data/data/predictive_maintenance.csv")
 
 feature_cols = ["Air temperature [K]", "Process temperature [K]", "Rotational speed [rpm]", "Torque [Nm]"]
 label_col = "Target"
@@ -30,7 +30,7 @@ param_grid = {
 }
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-clf = RandomForestClassifier(random_state=41)
+clf = RandomForestClassifier(random_state=41, verbose=False)
 
 # Set up GridSearchCV
 grid_search = GridSearchCV(
@@ -39,10 +39,10 @@ grid_search = GridSearchCV(
     cv=5,                # 5-fold cross-validation
     scoring='f1',        # or 'accuracy', 'precision', etc.
     n_jobs=-1,           # use all cores
-    verbose=2
+    verbose=0,
 )
 
-grid_search.fit(X_train, y_train)
+grid_search.fit(X_train, y_train )
 
 best_model = grid_search.best_estimator_
 

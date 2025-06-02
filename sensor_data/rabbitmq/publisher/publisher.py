@@ -7,22 +7,32 @@ class CSVRecordPublisher:
 
     def __init__(self, queue_name, filename, cols):
         self._queue_name = queue_name
-        self._df = pl.read_csv(filename)[cols]
+        self._df: pl.DataFrame = pl.read_csv(filename)[cols]
 
         self._connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         self._channel = self._connection.channel()
         self._channel.queue_declare(self._queue_name)
 
-    def run(self, period):
+    def run(self, period=None, num_records=None, offset=0):
+        print(num_records)
+        print(self._df.height)
+        print(offset)
+        if num_records is not None:
+            upper_bound = min(offset+num_records, self._df.height)
+        else:
+            upper_bound = self._df.height
 
-        for reading in self._df.iter_rows(named=True):
+        df = self._df[offset:upper_bound]
+
+        for reading in df.iter_rows(named=True):
             body = json.dumps(reading)
             self._channel.basic_publish(
                 exchange="",
                 routing_key=self._queue_name,
                 body=body
             )
-            time.sleep(period)
 
-        # We probably won't ever reach this point... whatever...
+            if period is not None:
+                time.sleep(period)
+
         self._connection.close()

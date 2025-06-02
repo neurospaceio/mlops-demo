@@ -9,6 +9,8 @@ asset_groups = {
     "inference": "model_inference"
 }
 
+cleaned_readings_fn = "cleaned_readings.jsonl"
+cleaned_daily_statuses_fn = "cleaned_daily_statuses.jsonl"
 
 @dg.asset(
     description="Gets all sensor readings currently in the queue. These readings are streamed continuously from all sensors.",
@@ -37,11 +39,9 @@ def sensor_readings(context: dg.AssetExecutionContext) -> list[str]:
             context.log.info("No more messages in queue.")
             break
 
-    if len(messages) > 0:
-        context.add_output_metadata({
-            "message": messages[0],
-            "num_messages": len(messages)
-        })
+    context.add_output_metadata({
+        "num_messages": len(messages)
+    })
 
     return messages
 
@@ -55,7 +55,7 @@ def daily_machine_statuses(context: dg.AssetExecutionContext) -> list[str]:
 
     rmqconn = context.resources.rmqconn
 
-    queue = "machine_statuses"
+    queue = "daily_statuses"
     channel = rmqconn.channel()
     channel.queue_declare(queue=queue)
 
@@ -72,11 +72,9 @@ def daily_machine_statuses(context: dg.AssetExecutionContext) -> list[str]:
             context.log.info("No more messages in queue {}.")
             break
 
-    if len(messages) > 0:
-        context.add_output_metadata({
-            "message": messages[0],
-            "num_messages": len(messages)
-        })
+    context.add_output_metadata({
+        "num_messages": len(messages)
+    })
 
     return messages
 
@@ -88,6 +86,13 @@ def daily_machine_statuses(context: dg.AssetExecutionContext) -> list[str]:
 def cleaned_readings(context: dg.AssetExecutionContext, sensor_readings: list[str]) -> pl.DataFrame:
     data = [json.loads(row) for row in sensor_readings]
     df = pl.from_records(data)
+
+    # Here we would be doing some cleaning...
+
+    context.add_output_metadata({
+        "num_cleaned_readings": len(df)
+    })
+
     return df
 
 @dg.asset(
@@ -97,33 +102,42 @@ def cleaned_readings(context: dg.AssetExecutionContext, sensor_readings: list[st
 def cleaned_daily_statuses(context: dg.AssetExecutionContext, daily_machine_statuses: list[str]) -> pl.DataFrame:
     data = [json.loads(row) for row in daily_machine_statuses]
     df = pl.from_records(data)
+
+    # Here we would be doing some cleaning...
+
+    context.add_output_metadata({
+        "num_raw_statuses": len(daily_machine_statuses),
+        "num_cleaned_statuses": len(df)
+    })
+
     return df
-
-
 
 
 @dg.asset(
     description="",
     group_name=asset_groups["ingestion"],
-    kinds={"polars"}
 )
-def joined_cleaned_readings_and_statuses(context: dg.AssetExecutionContext, cleaned_readings: pl.DataFrame, cleaned_daily_statuses: pl.DataFrame) -> pl.DataFrame:
+def historical_daily_statuses(context: dg.AssetExecutionContext, cleaned_daily_statuses: pl.DataFrame) -> int:
 
-    context.log.info(f"cleaned_readings.columns: {cleaned_readings.columns}")
-    context.log.info(f"cleaned_daily_statuses.columns: {cleaned_daily_statuses.columns}")
-    context.log.info(f"len(cleaned_readings): {len(cleaned_readings)}")
     context.log.info(f"len(cleaned_daily_statuses): {len(cleaned_daily_statuses)}")
+    with open(cleaned_daily_statuses_fn, "a+") as f:
+        cleaned_daily_statuses.write_ndjson(f)
 
-    df_joined = cleaned_readings.join(cleaned_daily_statuses, on="UDI", how="inner")
+    return len(cleaned_daily_statuses)
 
-    context.add_output_metadata({
-        "num_matches": len(df_joined)
-    })
+@dg.asset(
+    description="",
+    group_name=asset_groups["ingestion"],
+)
+def historical_readings(context: dg.AssetExecutionContext, cleaned_readings: pl.DataFrame) -> int:
 
-    return df_joined
+    context.log.info(f"len(cleaned_readings): {len(cleaned_readings)}")
+    with open(cleaned_readings_fn, "a+") as f:
+        cleaned_readings.write_ndjson(f)
 
+    return len(cleaned_readings)
 
-get_all_readings_job = dg.define_asset_job("get_all_readings_job", selection=[sensor_readings, cleaned_readings, joined_cleaned_readings_and_statuses])
+get_all_readings_job = dg.define_asset_job("get_all_readings_job", selection=[sensor_readings, cleaned_readings, historical_readings])
 
 @dg.sensor(
     job=get_all_readings_job,
@@ -139,12 +153,17 @@ def min_number_of_readings_sensor(context: dg.SensorEvaluationContext):
     queue = channel.queue_declare(queue="readings")
     message_count = queue.method.message_count
 
-    if message_count > 100:
-        yield dg.RunRequest()
-    else:
+    last_message_count = int(context.cursor) if context.cursor else 0
+    if  message_count <= last_message_count:
+        yield dg.SkipReason(f"Another run is already emptying the queue, current message count is {message_count}")
+    elif message_count < 500:
         yield dg.SkipReason(f"Minimum number of messages not reached yet (it was {message_count})")
+    else:
+        yield dg.RunRequest()
 
-get_all_daily_machine_statuses_job = dg.define_asset_job("get_all_daily_machine_statuses_job", selection=[daily_machine_statuses, cleaned_daily_statuses, joined_cleaned_readings_and_statuses])
+    context.update_cursor(str(message_count))
+
+get_all_daily_machine_statuses_job = dg.define_asset_job("get_all_daily_machine_statuses_job", selection=[daily_machine_statuses, cleaned_daily_statuses, historical_daily_statuses])
 
 @dg.sensor(
     job=get_all_daily_machine_statuses_job,
@@ -160,11 +179,15 @@ def min_number_of_machine_statuses_sensor(context: dg.SensorEvaluationContext):
     queue = channel.queue_declare(queue="daily_statuses")
     message_count = queue.method.message_count
 
-    if message_count > 50:
-        yield dg.RunRequest()
-    else:
+    last_message_count = int(context.cursor) if context.cursor else 0
+    if  message_count <= last_message_count:
+        yield dg.SkipReason(f"Another run is already emptying the queue, current message count is {message_count}")
+    elif message_count < 500:
         yield dg.SkipReason(f"Minimum number of messages not reached yet (it was {message_count})")
+    else:
+        yield dg.RunRequest()
 
+    context.update_cursor(str(message_count))
 
 @dg.asset(
     description="Inference, outputs the devices at risk of failure",
