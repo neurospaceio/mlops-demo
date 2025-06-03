@@ -21,7 +21,6 @@ cleaned_daily_statuses_fn = "cleaned_daily_statuses.jsonl"
     description="",
     group_name=asset_groups["training"],
     kinds={"polars"},
-    automation_condition=dg.AutomationCondition.eager() & dg.AutomationCondition.cron_tick_passed("*/5 * * * *")
 )
 def joined_cleaned_readings_and_statuses(context: dg.AssetExecutionContext,  historical_readings: int, historical_daily_statuses: int) -> pl.DataFrame:
 
@@ -84,7 +83,7 @@ def test_data(context: dg.AssetExecutionContext, joined_cleaned_readings_and_sta
     description="",
     group_name=asset_groups["training"]
 )
-def trained_model(context: dg.AssetExecutionContext, training_data: pl.DataFrame, test_data: pl.DataFrame) -> bool:
+def trained_model(context: dg.AssetExecutionContext, training_data: pl.DataFrame, test_data: pl.DataFrame) -> RandomForestClassifier:
 
     feature_cols = ["Air temperature [K]", "Process temperature [K]", "Rotational speed [rpm]", "Torque [Nm]"]
     label_col = "Target"
@@ -123,7 +122,7 @@ def trained_model(context: dg.AssetExecutionContext, training_data: pl.DataFrame
         "precision": precision_score(y_test, y_pred),
     }
 
-    context.add_output_metadata({
+    context.add_asset_metadata({
         "Classes": dg.MetadataValue.json(best_model.classes_.tolist()),
         "Accuracy": scores["accuracy"],
         "Recall": scores["recall"],
@@ -131,7 +130,7 @@ def trained_model(context: dg.AssetExecutionContext, training_data: pl.DataFrame
     })
 
 
-    return True
+    return best_model
 
 train_ml_model_job = dg.define_asset_job(
     "train_ml_model",
