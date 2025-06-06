@@ -31,7 +31,7 @@ class DeployedModelConfiguration(dg.Config):
     model_name: str
 
 @dg.asset(
-    description="",
+    description="The currently deployed model",
     group_name="deployment"
 )
 def deployed_model(production_model_candidates: list[str], config: DeployedModelConfiguration) -> RandomForestClassifier:

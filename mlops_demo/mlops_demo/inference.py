@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 group_name = "inference"
 
 @dg.asset(
-    description="Inference, outputs the devices at risk of failure",
+    description="Outputs the devices at risk of failure",
     group_name=group_name,
     automation_condition=dg.AutomationCondition.eager()
 )

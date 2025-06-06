@@ -18,7 +18,7 @@ cleaned_readings_fn = "cleaned_readings.jsonl"
 cleaned_daily_statuses_fn = "cleaned_daily_statuses.jsonl"
 
 @dg.asset(
-    description="",
+    description="Overlap between readings and statuses",
     group_name=asset_groups["training"],
     kinds={"polars"},
 )
@@ -39,7 +39,7 @@ def joined_cleaned_readings_and_statuses(context: dg.AssetExecutionContext,  his
 
 
 @dg.asset(
-    description="Get the training dataset",
+    description="The training part of the dataset",
     group_name=asset_groups["training"],
 )
 def training_data(context: dg.AssetExecutionContext, joined_cleaned_readings_and_statuses: pl.DataFrame) -> pl.DataFrame:
@@ -60,7 +60,7 @@ def training_data(context: dg.AssetExecutionContext, joined_cleaned_readings_and
     
     
 @dg.asset(
-    description="Get the test dataset",
+    description="The test part of the dataset",
     group_name=asset_groups["training"],
 )
 def test_data(context: dg.AssetExecutionContext, joined_cleaned_readings_and_statuses: pl.DataFrame) -> pl.DataFrame:
@@ -80,7 +80,7 @@ def test_data(context: dg.AssetExecutionContext, joined_cleaned_readings_and_sta
 
 
 @dg.asset(
-    description="",
+    description="The last trained model (not the production model)",
     group_name=asset_groups["training"]
 )
 def trained_model(context: dg.AssetExecutionContext, training_data: pl.DataFrame, test_data: pl.DataFrame) -> RandomForestClassifier:
@@ -141,7 +141,3 @@ train_ml_model_schedule = dg.ScheduleDefinition(
     job=train_ml_model_job,
     cron_schedule="*/10 * * * *"
 )
-
-# Slack eller email integration - giv besked når der er en bedre model, manual approval
-# Logging og monitorering
-# Kør A/B test hvis i produktion.

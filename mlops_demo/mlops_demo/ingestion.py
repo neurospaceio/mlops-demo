@@ -77,6 +77,7 @@ def daily_machine_statuses(context: dg.AssetExecutionContext) -> list[str]:
 @dg.asset(
     description="Convert readings to dataframe and clean",
     group_name=group_name,
+    kinds={"polars"}
 )
 def cleaned_readings(context: dg.AssetExecutionContext, sensor_readings: list[str]) -> pl.DataFrame:
     data = [json.loads(row) for row in sensor_readings]
@@ -93,6 +94,7 @@ def cleaned_readings(context: dg.AssetExecutionContext, sensor_readings: list[st
 @dg.asset(
     description="Convert statuses to dataframe and clean",
     group_name=group_name,
+    kinds={"polars"}
 )
 def cleaned_daily_statuses(context: dg.AssetExecutionContext, daily_machine_statuses: list[str]) -> pl.DataFrame:
     data = [json.loads(row) for row in daily_machine_statuses]
@@ -108,8 +110,9 @@ def cleaned_daily_statuses(context: dg.AssetExecutionContext, daily_machine_stat
     return df
 
 @dg.asset(
-    description="",
+    description="A database of historical daily statuses",
     group_name=group_name,
+    kinds={"file"}
 )
 def historical_daily_statuses(context: dg.AssetExecutionContext, cleaned_daily_statuses: pl.DataFrame) -> int:
 
@@ -120,8 +123,9 @@ def historical_daily_statuses(context: dg.AssetExecutionContext, cleaned_daily_s
     return len(cleaned_daily_statuses)
 
 @dg.asset(
-    description="",
+    description="A database of historical sensor readings",
     group_name=group_name,
+    kinds={"file"}
 )
 def historical_readings(context: dg.AssetExecutionContext, cleaned_readings: pl.DataFrame) -> int:
 
