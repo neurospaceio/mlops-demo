@@ -1,2 +1,5 @@
 mlops_demo/.tmp_dagster**
 __pycache__
+cleaned_daily_statuses.jsonl
+cleaned_readings.jsonl
+trained-models
