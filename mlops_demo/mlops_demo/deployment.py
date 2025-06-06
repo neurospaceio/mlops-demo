@@ -7,7 +7,8 @@ from datetime import datetime
 
 @dg.asset(
     description="Production model candidates",
-    group_name="deployment"
+    group_name="deployment",
+    automation_condition=dg.AutomationCondition.eager()
 )
 def production_model_candidates(context: dg.AssetExecutionContext, trained_model: RandomForestClassifier) -> list[str]:
 
