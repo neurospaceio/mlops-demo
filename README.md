@@ -101,3 +101,16 @@ Now go back and publish 500 more machine statuses.
 Now we have 1000 readings and 1000 statuses so we have more data for training a model.
 Re-run the `train_ml_model` job and investigate the metadata for the `trained_model` asset. You can see how model scores are evolving.
 Now deploy the new model and watch how the "devices at risk" list changes.
+
+
+### Reset everything
+To reset everything do the following
+
+1. Stop Dagster (Ctrl+C)
+1. Delete the files `cleaned_daily_statuses.jsonl` and `cleaned_readings.jsonl`.
+1. Delete the contents of the folder `trained-models`.
+1. Empty the RabbitMQ queues (if you always publish minimum 500 messages, this should not be necessary as Dagster will empty the queues entirely).
+```
+docker exec rabbitmq rabbitmqctl purge_queue daily_statuses
+docker exec rabbitmq rabbitmqctl purge_queue readings
+```
