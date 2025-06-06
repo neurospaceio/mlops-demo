@@ -16,6 +16,7 @@ First, install all necessary packages by running
 ```
 pipenv sync
 ```
+If you don't have `pipenv` you can use the `requirements.txt` file.
 
 ### Start RabbitMQ
 Sensor readings and daily machine statuses are simulated using a RabbitMQ queue.
