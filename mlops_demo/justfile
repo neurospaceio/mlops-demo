@@ -1,0 +1,22 @@
+# default when running just
+default: help
+
+# prints this help message with all available just recipies
+help:
+    just -l
+
+# build documentation for Model Cards
+build-modelcard:
+    mkdocs build
+
+# locally serve the Model Cards
+serve-modelcard:
+    mkdocs serve
+
+# start database
+run-rabbitmq:
+    docker compose up
+
+# start dagster in dev
+run-dagster-dev:
+    dagster dev
