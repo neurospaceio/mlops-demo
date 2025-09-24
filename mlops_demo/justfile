@@ -19,4 +19,4 @@ run-rabbitmq:
 
 # start dagster in dev
 run-dagster-dev:
-    dagster dev
+    pipenv run dagster dev
