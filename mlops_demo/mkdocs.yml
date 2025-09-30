@@ -1,0 +1,4 @@
+site_name: Model Card for predictive maintenance MLOps Demo
+nav:
+    - Home: index.md
+    - ModelCard: model_card.md

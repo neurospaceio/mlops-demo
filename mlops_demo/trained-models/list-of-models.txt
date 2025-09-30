@@ -1,0 +1,1 @@
+trained-models/model-2025-06-09_16-06-16.pickle
